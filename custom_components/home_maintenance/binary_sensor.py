@@ -1,4 +1,4 @@
-"""Support for Home Maintenance binary sensors."""  # noqa: EXE002
+"""Support for Home Maintenance binary sensors."""
 
 import logging
 from datetime import datetime, timedelta

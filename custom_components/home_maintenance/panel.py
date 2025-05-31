@@ -1,4 +1,4 @@
-"""Support for Home Maintenance custom panel."""  # noqa: EXE002
+"""Support for Home Maintenance custom panel."""
 
 import logging
 import os

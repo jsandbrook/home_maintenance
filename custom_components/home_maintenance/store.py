@@ -1,4 +1,4 @@
-"""Store Home Maintenance configuration."""  # noqa: EXE002
+"""Store Home Maintenance configuration."""
 
 import logging
 

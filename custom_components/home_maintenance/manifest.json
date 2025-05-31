@@ -1,18 +1,18 @@
 {
   "domain": "home_maintenance",
   "name": "Home Maintenance",
-  "version": "1.0.0",
-  "requirements": [],
+  "after_dependencies": [
+    "frontend"
+  ],
+  "codeowners": ["@TJPoorman"],
+  "config_flow": true,
   "dependencies": [
     "http",
     "panel_custom"
   ],
-  "after_dependencies": [
-    "frontend"
-  ],
   "documentation": "https://github.com/TJPoorman/home_maintenance",
+  "iot_class": "local_polling",
   "issue_tracker": "https://github.com/TJPoorman/home_maintenance/issues",
-  "codeowners": ["@TJPoorman"],
-  "config_flow": true,
-  "iot_class": "local_polling"
+  "requirements": [],
+  "version": "1.0.0"
 }

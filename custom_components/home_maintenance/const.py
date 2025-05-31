@@ -1,4 +1,4 @@
-"""Constants for the Home Maintenance integration."""  # noqa: EXE002
+"""Constants for the Home Maintenance integration."""
 
 import voluptuous as vol
 from homeassistant.helpers import config_validation as cv
@@ -8,6 +8,8 @@ NAME = "Home Maintenance"
 MANUFACTURER = "@TJPoorman"
 
 DOMAIN = "home_maintenance"
+
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 PANEL_FILENAME = "panel/main.js"
 PANEL_URL = "home-maintenance"

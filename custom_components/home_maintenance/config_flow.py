@@ -1,4 +1,4 @@
-"""Config flow for Home Maintenance integration."""  # noqa: EXE002
+"""Config flow for Home Maintenance integration."""
 
 import secrets
 from typing import Any

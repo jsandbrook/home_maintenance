@@ -1,4 +1,4 @@
-"""Support for Home Maintenance platform."""  # noqa: EXE002
+"""Support for Home Maintenance platform."""
 
 import logging
 from typing import cast
@@ -20,6 +20,8 @@ from .store import TaskStore
 from .websocket import async_register_websockets
 
 _LOGGER = logging.getLogger(__name__)
+
+CONFIG_SCHEMA = const.CONFIG_SCHEMA
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:  # noqa: ARG001

@@ -1,4 +1,4 @@
-"""Websocket commands for the Home Maintenance integration."""  # noqa: EXE002
+"""Websocket commands for the Home Maintenance integration."""
 
 import uuid
 from typing import Any

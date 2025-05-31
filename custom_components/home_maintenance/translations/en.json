@@ -1,6 +1,13 @@
 {
   "config": {
     "flow_title": "Home Maintenance",
+    "step": {
+      "user": {
+        "title": "Configure Home Maintenance",
+        "description": "Set up the Home Maintenance integration.",
+        "data": {}
+      }
+    },
     "abort": {
       "single_instance_allowed": "Only a single instance of Home Maintenance is allowed."
     }
