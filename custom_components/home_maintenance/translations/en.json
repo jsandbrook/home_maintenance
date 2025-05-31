@@ -1,0 +1,8 @@
+{
+  "config": {
+    "flow_title": "Home Maintenance",
+    "abort": {
+      "single_instance_allowed": "Only a single instance of Home Maintenance is allowed."
+    }
+  }
+}
