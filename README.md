@@ -17,9 +17,9 @@ This custom integration helps you remember important chores like changing air fi
 
 ## 🖼️ Screenshots
 
-- ![Task Panel](screenshots/task-panel.png)
-- ![Integration Page](screenshots/integration-page.png)
-- ![Entity Attributes](screenshots/entity-attributes.png)
+- ![Task Panel](screenshots/task-panel.PNG)
+- ![Integration Page](screenshots/integration-page.PNG)
+- ![Entity Attributes](screenshots/entity-attributes.PNG)
 
 ---
 
