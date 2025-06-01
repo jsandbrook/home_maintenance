@@ -28,7 +28,7 @@ This custom integration helps you remember important chores like changing air fi
 1. In Home Assistant, go to HACS.
 1. Click the “⋮” (three dots menu) in the top-right corner, then choose “Custom repositories”.
 1. In the dialog:
-   1. Paste the URL of this repository (e.g., https://github.com/yourusername/home_maintenance)
+   1. Paste the URL of this repository (https://github.com/TJPoorman/home_maintenance)
    1. Set the category to Integration
    1. Click Add
 1. After adding the custom repository, search for Home Maintenance in HACS and install it.
