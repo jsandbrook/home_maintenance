@@ -70,7 +70,7 @@ Marks a specific task as completed and updates its `last_performed` and `next_du
 #### Example service call:
 
 ```yaml
-service: home_maintenance.### `home_maintenance.reset_last_performed`
+service: home_maintenance.reset_last_performed
 data:
   entity_id: binary_sensor.clean_gutters
 ```
