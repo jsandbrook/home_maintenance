@@ -14,7 +14,7 @@ _LOGGER = logging.getLogger(__name__)
 
 STORAGE_KEY = f"{const.DOMAIN}.storage"
 STORAGE_VERSION_MAJOR = 1
-STORAGE_VERSION_MINOR = 0
+STORAGE_VERSION_MINOR = 1
 
 
 @attr.s(slots=True)
@@ -26,6 +26,7 @@ class HomeMaintenanceTask:
     interval_value: int = attr.ib()
     interval_type: str = attr.ib()
     last_performed: str = attr.ib()
+    tag_id: str | None = attr.ib(default=None)
 
 
 class TaskStore:
@@ -59,6 +60,10 @@ class TaskStore:
     def get(self, task_id: str) -> HomeMaintenanceTask | None:
         """Get single task."""
         return self._tasks.get(task_id)
+
+    def get_by_tag_id(self, tag_id: str) -> list[dict]:
+        """Get tasks by tag id."""
+        return [attr.asdict(t) for t in self._tasks.values() if t.tag_id == tag_id]
 
     def add(self, task: HomeMaintenanceTask) -> str | None:
         """Add new task."""
