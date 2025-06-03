@@ -85,6 +85,8 @@ class HomeMaintenanceSensor(BinarySensorEntity):
                 "interval_type": self.task["interval_type"],
                 "next_due": "unknown",
             }
+            if self.task["tag_id"]:
+                self._attr_extra_state_attributes["tag_id"] = self.task["tag_id"]
             return
 
         if last.tzinfo is None:
@@ -105,6 +107,8 @@ class HomeMaintenanceSensor(BinarySensorEntity):
             "interval_type": self.task["interval_type"],
             "next_due": due_date.isoformat(),
         }
+        if self.task["tag_id"]:
+            self._attr_extra_state_attributes["tag_id"] = self.task["tag_id"]
 
     async def async_update(self) -> None:
         """Get the latest state of the sensor."""

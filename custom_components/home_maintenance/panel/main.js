@@ -7,6 +7,17 @@ class HomeMaintenancePanel extends HTMLElement {
 
   set hass(hass) {
     this._hass = hass;
+    //this.render();
+    this.loadTags();
+  }
+
+  async loadTags() {
+    if (!this._hass) return;
+
+    this.tags = await this._hass.connection.sendMessagePromise({
+      type: "tag/list"
+    });
+
     this.render();
   }
 
@@ -34,6 +45,7 @@ class HomeMaintenancePanel extends HTMLElement {
     const intervalValueEl = this.shadowRoot.getElementById("interval");
     const intervalTypeEl = this.shadowRoot.getElementById("interval-type");
     const lastPerformedEl = this.shadowRoot.getElementById("last-performed");
+    const tagIdEl = this.shadowRoot.getElementById("tag-select");
 
     const title = titleEl.value.trim();
     const intervalValue = parseInt(intervalValueEl.value);
@@ -56,18 +68,20 @@ class HomeMaintenancePanel extends HTMLElement {
       today.setHours(0, 0, 0, 0);
       lastPerformed = today.toISOString();
     }
-
     console.log("Raw input:", dateStr);
     console.log("Converted to send:", lastPerformed);
+
+    const tagId = tagIdEl.value || null;
 
     // Disable button to prevent double clicks
     const addButton = this.shadowRoot.getElementById("add-button");
     addButton.disabled = true;
 
-    await this.wsRequest("add_task", { title, interval_value: intervalValue, interval_type: intervalType, last_performed: lastPerformed });
+    await this.wsRequest("add_task", { title, interval_value: intervalValue, interval_type: intervalType, last_performed: lastPerformed, tag_id: tagId });
     titleEl.value = "";
     intervalValueEl.value = "";
     intervalTypeEl.value = "days";
+    tagIdEl.value = "";
     await this.loadTasks();
 
     addButton.disabled = false;
@@ -95,7 +109,11 @@ class HomeMaintenancePanel extends HTMLElement {
       this.shadowRoot.innerHTML = `<p>Loading tasks...</p>`;
       return;
     }
-  
+
+    const tagOptions = this.tags
+      ? this.tags.map(tag => `<option value="${tag.id}">${tag.name || tag.id}</option>`).join("")
+      : `<option disabled>Loading...</option>`;
+
     this.shadowRoot.innerHTML = `
       <style>
         :host {
@@ -120,6 +138,16 @@ class HomeMaintenancePanel extends HTMLElement {
         input, button, select {
           padding: 8px;
           font-size: 1em;
+          height: 40px;
+          box-sizing: border-box;
+        }
+
+        input[type="date"]:hover {
+          border-color: var(--primary-text-color); /* or use --primary-color for accent */
+        }
+
+        select {
+          min-width: 120px;
         }
 
         ul {
@@ -167,14 +195,15 @@ class HomeMaintenancePanel extends HTMLElement {
         }
 
         .form-field input[type="date"] {
-          width: 100%;
-          padding: 8px;
-          box-sizing: border-box;
-          border: 1px solid var(--divider-color);
-          border-radius: 4px;
-          background-color: var(--card-background-color);
-          color: var(--primary-text-color);
-          font-size: 16px;
+          appearance: none;
+          -webkit-appearance: none;
+          -moz-appearance: none;
+
+          line-height: 1.2;
+
+          border-style: solid;
+          border-width: 1px;
+          border-radius: 2px;
         }
 
         .form-field small {
@@ -241,20 +270,29 @@ class HomeMaintenancePanel extends HTMLElement {
             </div>
 
             <div class="form-field">
+              <label for="tag-select">Tag</label>
+              <select id="tag-select">
+                <option value="">None</option>
+                ${tagOptions}
+              </select>
+              <small>Optional</small>
+            </div>
+
+            <div class="form-field">
               <label>&nbsp;</label>
               <mwc-button id="add-button">Add Task</mwc-button>
             </div>
           </div>
         </div>
       </ha-card>
-  
+
       <ha-card header="Current Tasks">
         <div class="card-content">
           <ul id="task-list"></ul>
         </div>
       </ha-card>
     `;
-  
+
     this.shadowRoot.getElementById("add-button").addEventListener("click", () => this.addTask());
     this.renderTasks();
   }
@@ -262,12 +300,12 @@ class HomeMaintenancePanel extends HTMLElement {
   renderTasks() {
     const taskList = this.shadowRoot.getElementById("task-list");
     if (!taskList) return;
-  
+
     if (!this.tasks || this.tasks.length === 0) {
       taskList.innerHTML = `<li>No tasks found.</li>`;
       return;
     }
-  
+
     taskList.innerHTML = this.tasks.map((task) => {
       const last = new Date(task.last_performed);
       const next = new Date(last);
@@ -320,7 +358,7 @@ class HomeMaintenancePanel extends HTMLElement {
         </li>
       `;
     }).join("");
-  
+
     this.shadowRoot.querySelectorAll(".complete").forEach((btn) =>
       btn.addEventListener("click", (e) => this.completeTask(e.target.dataset.id))
     );

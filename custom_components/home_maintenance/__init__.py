@@ -4,8 +4,9 @@ import logging
 from typing import cast
 
 from homeassistant.components.binary_sensor import DOMAIN as PLATFORM
+from homeassistant.components.tag.const import EVENT_TAG_SCANNED
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, ServiceCall, callback
+from homeassistant.core import Event, HomeAssistant, ServiceCall, callback
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_registry import RegistryEntry  # noqa: TC002
@@ -31,6 +32,23 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:  # noqa:
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up the Home Maintenance config entry."""
+
+    @callback
+    def handle_tag_scanned_event(event: Event) -> None:
+        """Handle when a tag is scanned."""
+        tag_id = event.data.get("tag_id")
+
+        store = hass.data[const.DOMAIN].get("store")
+        tasks = store.get_by_tag_id(tag_id)
+        if not tasks:
+            return
+
+        _LOGGER.debug("Tag scanned: %s", tag_id)
+
+        for task in tasks:
+            task_id = task["id"]
+            store.update_last_performed(task_id)
+
     # Initialize and load stored tasks
     task_store = TaskStore(hass)
     await task_store.async_load()
@@ -65,6 +83,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Register custom services
     register_services(hass)
+
+    # Register event listener for tag scanned
+    unsub = hass.bus.async_listen(EVENT_TAG_SCANNED, handle_tag_scanned_event)
+    hass.data[const.DOMAIN]["unsub_tag_scanned"] = unsub
+
     return True
 
 
@@ -73,6 +96,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     unload_ok = await hass.config_entries.async_unload_platforms(entry, [PLATFORM])
     if not unload_ok:
         return False
+
+    if "unsub_tag_scanned" in hass.data[const.DOMAIN]:
+        hass.data[const.DOMAIN]["unsub_tag_scanned"]()
 
     async_unregister_panel(hass)
     hass.data.pop(const.DOMAIN, None)
