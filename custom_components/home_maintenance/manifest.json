@@ -4,11 +4,14 @@
   "after_dependencies": [
     "frontend"
   ],
-  "codeowners": ["@TJPoorman"],
+  "codeowners": [
+    "@TJPoorman"
+  ],
   "config_flow": true,
   "dependencies": [
     "http",
-    "panel_custom"
+    "panel_custom",
+    "tag"
   ],
   "documentation": "https://github.com/TJPoorman/home_maintenance",
   "iot_class": "local_polling",
