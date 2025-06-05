@@ -43,16 +43,6 @@ Download the <a href="https://github.com/TJPoorman/home_maintenance/releases">la
 </ol>
 </details>
 
-1. In Home Assistant, go to HACS.
-1. Click the “⋮” (three dots menu) in the top-right corner, then choose “Custom repositories”.
-1. In the dialog:
-   1. Paste the URL of this repository (https://github.com/TJPoorman/home_maintenance)
-   1. Set the category to Integration
-   1. Click Add
-1. After adding the custom repository, search for Home Maintenance in HACS and install it.
-1. Restart Home Assistant.
-1. Open Settings > Devices & Services > Integrations, click “+ Add Integration”, search for Home Maintenance, and follow the setup instructions.
-
 ---
 
 ## 🛠️ How to Use
