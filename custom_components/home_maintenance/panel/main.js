@@ -17,8 +17,6 @@ class HomeMaintenancePanel extends HTMLElement {
     this.tags = await this._hass.connection.sendMessagePromise({
       type: "tag/list"
     });
-
-    this.render();
   }
 
   async wsRequest(type, payload = {}) {
@@ -34,7 +32,7 @@ class HomeMaintenancePanel extends HTMLElement {
       const tasks = await this.wsRequest("get_tasks");
       console.log("Tasks received:", tasks);
       this.tasks = tasks;
-      this.render();
+      this.renderTasks();
     } catch (error) {
       console.error("Failed to load tasks:", error);
     }
@@ -77,7 +75,17 @@ class HomeMaintenancePanel extends HTMLElement {
     const addButton = this.shadowRoot.getElementById("add-button");
     addButton.disabled = true;
 
-    await this.wsRequest("add_task", { title, interval_value: intervalValue, interval_type: intervalType, last_performed: lastPerformed, tag_id: tagId });
+    const payload = {
+      title,
+      interval_value: intervalValue,
+      interval_type: intervalType,
+      last_performed: lastPerformed,
+    };
+    if (tagId) {
+      payload.tag_id = tagId;
+    }
+
+    await this.wsRequest("add_task", payload);
     titleEl.value = "";
     intervalValueEl.value = "";
     intervalTypeEl.value = "days";
@@ -100,20 +108,6 @@ class HomeMaintenancePanel extends HTMLElement {
   }
 
   connectedCallback() {
-    this.render();
-    this.loadTasks();
-  }
-
-  render() {
-    if (!this.tasks) {
-      this.shadowRoot.innerHTML = `<p>Loading tasks...</p>`;
-      return;
-    }
-
-    const tagOptions = this.tags
-      ? this.tags.map(tag => `<option value="${tag.id}">${tag.name || tag.id}</option>`).join("")
-      : `<option disabled>Loading...</option>`;
-
     this.shadowRoot.innerHTML = `
       <style>
         :host {
@@ -242,48 +236,7 @@ class HomeMaintenancePanel extends HTMLElement {
       </style>
 
       <ha-card header="Create New Task">
-        <div class="card-content">
-          <div class="form-row">
-            <div class="form-field">
-              <label for="title">Task Title</label>
-              <input id="title" type="text" placeholder="Enter task title" />
-            </div>
-
-            <div class="form-field">
-              <label for="interval">Interval</label>
-              <input id="interval" type="number" min="1" />
-            </div>
-
-            <div class="form-field">
-              <label for="interval-type">Interval Type</label>
-              <select id="interval-type">
-                <option value="days">Days</option>
-                <option value="weeks">Weeks</option>
-                <option value="months">Months</option>
-              </select>
-            </div>
-
-            <div class="form-field">
-              <label for="last-performed">Last Performed</label>
-              <input id="last-performed" type="date" />
-              <small>Optional — leave blank to use today</small>
-            </div>
-
-            <div class="form-field">
-              <label for="tag-select">Tag</label>
-              <select id="tag-select">
-                <option value="">None</option>
-                ${tagOptions}
-              </select>
-              <small>Optional</small>
-            </div>
-
-            <div class="form-field">
-              <label>&nbsp;</label>
-              <mwc-button id="add-button">Add Task</mwc-button>
-            </div>
-          </div>
-        </div>
+        <div id="form-container" class="card-content"></div>
       </ha-card>
 
       <ha-card header="Current Tasks">
@@ -292,9 +245,68 @@ class HomeMaintenancePanel extends HTMLElement {
         </div>
       </ha-card>
     `;
+    this.renderForm();
+    this.loadTasks();
+  }
 
+  render() {
+    if (!this.tasks) {
+      this.shadowRoot.innerHTML = `<p>Loading tasks...</p>`;
+      return;
+    }
+  }
+
+  renderForm() {
+    const tagOptions = this.tags
+      ? this.tags.map(tag => `<option value="${tag.id}">${tag.name || tag.id}</option>`).join("")
+      : `<option disabled>Loading...</option>`;
+
+    const form = document.createElement("div");
+    form.innerHTML = `
+      <div class="form-row">
+        <div class="form-field">
+          <label for="title">Task Title</label>
+          <input id="title" type="text" placeholder="Enter task title" />
+        </div>
+
+        <div class="form-field">
+          <label for="interval">Interval</label>
+          <input id="interval" type="number" min="1" />
+        </div>
+
+        <div class="form-field">
+          <label for="interval-type">Interval Type</label>
+          <select id="interval-type">
+            <option value="days">Days</option>
+            <option value="weeks">Weeks</option>
+            <option value="months">Months</option>
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label for="last-performed">Last Performed</label>
+          <input id="last-performed" type="date" />
+          <small>Optional — leave blank to use today</small>
+        </div>
+
+        <div class="form-field">
+          <label for="tag-select">Tag</label>
+          <select id="tag-select">
+            <option value="">None</option>
+            ${tagOptions}
+          </select>
+          <small>Optional</small>
+        </div>
+
+        <div class="form-field">
+          <label>&nbsp;</label>
+          <mwc-button id="add-button">Add Task</mwc-button>
+        </div>
+      </div>
+    `
+
+    this.shadowRoot.getElementById("form-container").appendChild(form);
     this.shadowRoot.getElementById("add-button").addEventListener("click", () => this.addTask());
-    this.renderTasks();
   }
 
   renderTasks() {

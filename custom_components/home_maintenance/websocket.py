@@ -53,7 +53,7 @@ def websocket_add_task(
         interval_value=msg["interval_value"],
         interval_type=msg["interval_type"],
         last_performed=last_performed,
-        tag_id=msg["tag_id"],
+        tag_id=msg.get("tag_id"),
     )
 
     new_id = store.add(new_task)
