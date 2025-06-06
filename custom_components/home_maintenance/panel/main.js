@@ -3,12 +3,11 @@ class HomeMaintenancePanel extends HTMLElement {
     super();
     this.attachShadow({ mode: "open" });
     this.tasks = null;
+    this.tags = null;
   }
 
   set hass(hass) {
     this._hass = hass;
-    //this.render();
-    this.loadTags();
   }
 
   async loadTags() {
@@ -245,7 +244,11 @@ class HomeMaintenancePanel extends HTMLElement {
         </div>
       </ha-card>
     `;
-    this.renderForm();
+
+    this.loadTags().then(() => {
+      this.renderForm();
+    });
+
     this.loadTasks();
   }
 
