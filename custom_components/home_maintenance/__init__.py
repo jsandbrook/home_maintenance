@@ -1,6 +1,7 @@
 """Support for Home Maintenance platform."""
 
 import logging
+from datetime import datetime
 from typing import cast
 
 from homeassistant.components.binary_sensor import DOMAIN as PLATFORM
@@ -11,6 +12,7 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_registry import RegistryEntry  # noqa: TC002
 from homeassistant.helpers.typing import ConfigType
+from homeassistant.util import dt as dt_util
 
 from . import const
 from .panel import (
@@ -122,6 +124,17 @@ def register_services(hass: HomeAssistant) -> None:
 
     async def async_srv_reset(call: ServiceCall) -> None:
         entity_id = call.data["entity_id"]
+        performed_date_str = call.data.get("performed_date")
+
+        performed_date = None
+        if performed_date_str is not None:
+            parsed_date = dt_util.parse_date(performed_date_str)
+            if parsed_date is None:
+                msg = f"Could not parse performed_date: {performed_date_str}"
+                raise ValueError(msg)
+            combined_date = datetime.combine(parsed_date, datetime.min.time())
+            performed_date = dt_util.as_local(combined_date)
+
         entity_registry = er.async_get(hass)
         entry = cast("RegistryEntry", entity_registry.async_get(entity_id))
         task_id = entry.unique_id
@@ -130,7 +143,7 @@ def register_services(hass: HomeAssistant) -> None:
             return
 
         store = hass.data[const.DOMAIN].get("store")
-        store.update_last_performed(task_id)
+        store.update_last_performed(task_id, performed_date)
 
     hass.services.async_register(
         const.DOMAIN,

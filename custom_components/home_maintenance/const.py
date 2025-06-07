@@ -24,5 +24,6 @@ SERVICE_RESET = "reset_last_performed"
 SERVICE_RESET_SCHEMA = vol.Schema(
     {
         vol.Required("entity_id"): cv.entity_id,
+        vol.Optional("performed_date"): cv.string,
     }
 )
