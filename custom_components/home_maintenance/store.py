@@ -1,6 +1,7 @@
 """Store Home Maintenance configuration."""
 
 import logging
+from datetime import datetime
 
 import attr
 from homeassistant.core import HomeAssistant
@@ -57,9 +58,9 @@ class TaskStore:
         """Get all tasks."""
         return [attr.asdict(t) for t in self._tasks.values()]
 
-    def get(self, task_id: str) -> HomeMaintenanceTask | None:
+    def get(self, task_id: str) -> dict:
         """Get single task."""
-        return self._tasks.get(task_id)
+        return attr.asdict(self._tasks.get(task_id))
 
     def get_by_tag_id(self, tag_id: str) -> list[dict]:
         """Get tasks by tag id."""
@@ -112,25 +113,42 @@ class TaskStore:
         del self._tasks[task_id]
         self._save()
 
-    def update_last_performed(self, task_id: str) -> None:
-        """Update a tasks last performed date."""
+    def update_task(self, task_id: str, updated: dict) -> None:
+        """Update an existing task with new values from a dictionary."""
         entity = self.hass.data[const.DOMAIN]["entities"].get(task_id)
         task = self._tasks.get(task_id)
 
-        msg = "Task not found."
-        if entity is None:
+        if entity is None or task is None:
+            msg = "Task not found."
             raise RuntimeError(msg)
-            return
-        if task is None:
-            raise RuntimeError(msg)
-            return
 
-        entity.task["last_performed"] = (
-            dt_util.now().replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
-        )
-        task.last_performed = (
-            dt_util.now().replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
-        )
+        for key, value in updated.items():
+            entity.task[key] = value
+            if hasattr(task, key):
+                setattr(task, key, value)
+
+        self.hass.async_create_task(entity.async_update_ha_state(force_refresh=True))
+        self._save()
+
+    def update_last_performed(
+        self, task_id: str, performed_date: datetime | None = None
+    ) -> None:
+        """Update a task's last performed date."""
+        entity = self.hass.data[const.DOMAIN]["entities"].get(task_id)
+        task = self._tasks.get(task_id)
+
+        if entity is None or task is None:
+            msg = "Task not found."
+            raise RuntimeError(msg)
+
+        if performed_date is None:
+            performed_date = dt_util.now()
+        performed_date_str = performed_date.replace(
+            hour=0, minute=0, second=0, microsecond=0
+        ).isoformat()
+
+        entity.task["last_performed"] = performed_date_str
+        task.last_performed = performed_date_str
         self.hass.async_create_task(entity.async_update_ha_state(force_refresh=True))
         self._save()
 

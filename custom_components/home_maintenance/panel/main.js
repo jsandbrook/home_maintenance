@@ -106,6 +106,75 @@ class HomeMaintenancePanel extends HTMLElement {
     this.loadTasks();
   }
 
+  async editTask(id) {
+    var task = await this.wsRequest("get_task", { task_id: id });
+
+    const dialog = this.dialog;
+    const titleElement = dialog.querySelector('#edit-dialog-title');
+    const intervalValueInput = dialog.querySelector('#edit-interval-value');
+    const intervalTypeInput = dialog.querySelector('#edit-interval-type');
+    const lastPerformedInput = dialog.querySelector('#edit-last-performed');
+
+    const date = new Date(task.last_performed);
+
+    titleElement.innerHTML = task.title;
+    intervalValueInput.value = task.interval_value;
+    intervalTypeInput.value = task.interval_type;
+    lastPerformedInput.value = date.toISOString().split('T')[0];
+
+    dialog.showModal();
+
+    dialog.addEventListener('click', (e) => {
+      const rect = dialog.getBoundingClientRect();
+      const clickedInDialog =
+        e.clientX >= rect.left &&
+        e.clientX <= rect.right &&
+        e.clientY >= rect.top &&
+        e.clientY <= rect.bottom;
+
+      if (!clickedInDialog) {
+        dialog.close();
+      }
+    });
+
+    const oldButton = dialog.querySelector('#save-task');
+    if (oldButton) {
+      const newButton = oldButton.cloneNode(true); // shallow copy, no listeners
+      oldButton.replaceWith(newButton);
+
+      newButton.addEventListener('click', async () => {
+        const dateStr = lastPerformedInput.value;
+        let lastPerformed = undefined;
+        if (dateStr) {
+          const [year, month, day] = dateStr.split("-").map(Number);
+          const parsedDate = new Date(year, month - 1, day);
+          if (!isNaN(parsedDate.getTime())) {
+            parsedDate.setHours(0, 0, 0, 0);
+            lastPerformed = parsedDate.toISOString();
+          } else {
+            alert("Invalid date entered.");
+          }
+        } else {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          lastPerformed = today.toISOString();
+        }
+
+        await this.wsRequest("update_task", {
+          task_id: id,
+          updates: {
+            interval_value: parseInt(intervalValueInput.value),
+            interval_type: intervalTypeInput.value,
+            last_performed: lastPerformed,
+          }
+        });
+
+        dialog.close();
+        this.loadTasks();
+      });
+    }
+  }
+
   connectedCallback() {
     this.shadowRoot.innerHTML = `
       <style>
@@ -234,16 +303,139 @@ class HomeMaintenancePanel extends HTMLElement {
         }
       </style>
 
+      <!-- New Task Container -->
       <ha-card header="Create New Task">
         <div id="form-container" class="card-content"></div>
       </ha-card>
 
+      <!-- Task List Container -->
       <ha-card header="Current Tasks">
         <div class="card-content">
           <ul id="task-list"></ul>
         </div>
       </ha-card>
     `;
+
+    this.dialog = document.createElement('dialog');
+    this.dialog.id = 'edit-dialog';
+    this.dialog.innerHTML = `
+      <form method="dialog" id="edit-form">
+        <div class="dialog-header">
+          <h2 id="edit-dialog-title">Task Title</h2>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-interval-value">Interval</label>
+          <input type="number" id="edit-interval-value" />
+        </div>
+
+        <div class="form-group">
+          <label for="edit-interval-type">Interval Type</label>
+          <select id="edit-interval-type">
+            <option value="days">Days</option>
+            <option value="weeks">Weeks</option>
+            <option value="months">Months</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-last-performed">Last Performed</label>
+          <input type="date" id="edit-last-performed" />
+        </div>
+
+        <menu>
+          <mwc-button value="save" id="save-task" class="save-button">Update</mwc-button>
+        </menu>
+      </form>
+    `;
+
+    // Style it manually (since it's in light DOM)
+    const style = document.createElement('style');
+    style.textContent = `
+      dialog {
+        border: none;
+        border-radius: 12px;
+        background: var(--card-background-color, #202020);
+        color: var(--primary-text-color, #fff);
+        padding: 24px;
+        max-width: 500px;
+        width: 90%;
+        box-shadow: 0 16px 32px rgba(0, 0, 0, 0.6);
+        animation: fadeIn 0.2s ease-out;
+      }
+
+      dialog::backdrop {
+        background: rgba(0, 0, 0, 0.5);
+      }
+
+      .dialog-header {
+        margin-bottom: 24px;
+      }
+
+      .dialog-header h2 {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 500;
+      }
+
+      .dialog-header .subtitle {
+        font-size: 13px;
+        color: var(--secondary-text-color, #aaa);
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+        display: flex;
+        flex-direction: column;
+      }
+
+      label {
+        font-size: 13px;
+        margin-bottom: 4px;
+        color: var(--secondary-text-color, #ccc);
+      }
+
+      input,
+      select {
+        background: var(--input-fill-color, #2c2c2c);
+        color: var(--primary-text-color, #fff);
+        border: 1px solid var(--divider-color, #444);
+        border-radius: 4px;
+        padding: 10px;
+        font-size: 14px;
+      }
+
+      select {
+        background-color: var(--card-background-color);
+        color: var(--primary-text-color);
+        border: 1px solid var(--divider-color);
+        padding: 8px;
+        border-radius: 4px;
+        font-size: 1em;
+      }
+
+      select:focus {
+        outline: none;
+        border-color: var(--primary-color);
+      }
+
+      menu {
+        display: flex;
+        justify-content: end;
+        border-top: 1px solid var(--divider-color, #444);
+        margin-top: 24px;
+        padding-top: 16px;
+        padding-left: 0;
+        padding-right: 0;
+      }
+
+      @keyframes fadeIn {
+        from { opacity: 0; transform: scale(0.95); }
+        to { opacity: 1; transform: scale(1); }
+      }
+      `;
+    this.dialog.appendChild(style);
+    document.body.appendChild(this.dialog);
 
     this.loadTags().then(() => {
       this.renderForm();
@@ -366,6 +558,9 @@ class HomeMaintenancePanel extends HTMLElement {
             <mwc-button data-id="${task.id}" class="complete">
               <ha-icon icon="mdi:check-circle-outline"></ha-icon> Complete
             </mwc-button>
+            <mwc-button data-id="${task.id}" class="edit">
+              <ha-icon icon="mdi:pencil-outline"></ha-icon> Edit
+            </mwc-button>
             <mwc-button data-id="${task.id}" class="remove warning">
               <ha-icon icon="mdi:trash-can-outline"></ha-icon> Remove
             </mwc-button>
@@ -374,6 +569,9 @@ class HomeMaintenancePanel extends HTMLElement {
       `;
     }).join("");
 
+    this.shadowRoot.querySelectorAll(".edit").forEach((btn) =>
+      btn.addEventListener("click", (e) => this.editTask(e.currentTarget.dataset.id))
+    );
     this.shadowRoot.querySelectorAll(".complete").forEach((btn) =>
       btn.addEventListener("click", (e) => this.completeTask(e.target.dataset.id))
     );

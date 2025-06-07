@@ -24,6 +24,17 @@ def websocket_get_tasks(
 
 
 @callback
+def websocket_get_task(
+    hass: HomeAssistant, connection: connection.ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """Get single tasks."""
+    store = hass.data[DOMAIN].get("store")
+    task_id = msg["task_id"]
+    result = store.get(task_id)
+    connection.send_result(msg["id"], result)
+
+
+@callback
 def websocket_add_task(
     hass: HomeAssistant, connection: connection.ActiveConnection, msg: dict[str, Any]
 ) -> None:
@@ -61,6 +72,18 @@ def websocket_add_task(
 
 
 @callback
+def websocket_update_task(
+    hass: HomeAssistant, connection: connection.ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """Update a tasks values."""
+    store = hass.data[DOMAIN].get("store")
+    task_id = msg["task_id"]
+    updates = msg.get("updates", {})
+    store.update_task(task_id, updates)
+    connection.send_result(msg["id"], {"success": True})
+
+
+@callback
 def websocket_complete_task(
     hass: HomeAssistant, connection: connection.ActiveConnection, msg: dict[str, Any]
 ) -> None:
@@ -95,6 +118,18 @@ async def async_register_websockets(hass: HomeAssistant) -> None:
 
     websocket_api.async_register_command(
         hass,
+        "home_maintenance/get_task",
+        websocket_get_task,
+        messages.BASE_COMMAND_MESSAGE_SCHEMA.extend(
+            {
+                vol.Required("type"): "home_maintenance/get_task",
+                vol.Required("task_id"): str,
+            }
+        ),
+    )
+
+    websocket_api.async_register_command(
+        hass,
         "home_maintenance/add_task",
         websocket_add_task,
         messages.BASE_COMMAND_MESSAGE_SCHEMA.extend(
@@ -105,6 +140,19 @@ async def async_register_websockets(hass: HomeAssistant) -> None:
                 vol.Required("interval_type"): str,
                 vol.Optional("last_performed"): str,
                 vol.Optional("tag_id"): str,
+            }
+        ),
+    )
+
+    websocket_api.async_register_command(
+        hass,
+        "home_maintenance/update_task",
+        websocket_update_task,
+        messages.BASE_COMMAND_MESSAGE_SCHEMA.extend(
+            {
+                vol.Required("type"): "home_maintenance/update_task",
+                vol.Required("task_id"): str,
+                vol.Required("updates"): dict,
             }
         ),
     )
