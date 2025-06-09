@@ -78,7 +78,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await hass.config_entries.async_forward_entry_setups(entry, [PLATFORM])
 
     # Register the panel (frontend)
-    await async_register_panel(hass)
+    await async_register_panel(hass, entry)
 
     # Websocket support
     await async_register_websockets(hass)
@@ -105,6 +105,12 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async_unregister_panel(hass)
     hass.data.pop(const.DOMAIN, None)
     return True
+
+
+async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Handle reload of a config entry."""
+    await async_unload_entry(hass, entry)
+    await async_setup_entry(hass, entry)
 
 
 async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:  # noqa: ARG001

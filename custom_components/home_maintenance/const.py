@@ -1,6 +1,7 @@
 """Constants for the Home Maintenance integration."""
 
 import voluptuous as vol
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers import config_validation as cv
 
 VERSION = "1.0.0"
@@ -27,3 +28,23 @@ SERVICE_RESET_SCHEMA = vol.Schema(
         vol.Optional("performed_date"): cv.string,
     }
 )
+
+CONFIG_STEP_USER_DATA_SCHEMA = vol.Schema(
+    {
+        vol.Optional("admin_only", default=True): cv.boolean,
+    }
+)
+
+
+def get_options_schema(config_entry: ConfigEntry) -> vol.Schema:
+    """Return the schema for get options."""
+    return vol.Schema(
+        {
+            vol.Optional(
+                "admin_only",
+                default=config_entry.options.get(
+                    "admin_only", config_entry.data.get("admin_only", True)
+                ),
+            ): cv.boolean,
+        }
+    )

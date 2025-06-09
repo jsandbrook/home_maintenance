@@ -5,10 +5,10 @@ import os
 
 from homeassistant.components import frontend, panel_custom
 from homeassistant.components.http import StaticPathConfig
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 from .const import (
-    DOMAIN,
     PANEL_API_URL,
     PANEL_FILENAME,
     PANEL_ICON,
@@ -20,7 +20,7 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_register_panel(hass: HomeAssistant) -> None:
+async def async_register_panel(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Register custom panel for Home Maintenance."""
     view_url = os.path.join(os.path.dirname(__file__), PANEL_FILENAME)  # noqa: PTH118, PTH120
 
@@ -31,6 +31,8 @@ async def async_register_panel(hass: HomeAssistant) -> None:
         )
         hass.data["home_maintenance_static_path_registered"] = True
 
+    admin_only = entry.options.get("admin_only", entry.data.get("admin_only", True))
+
     await panel_custom.async_register_panel(
         hass,
         webcomponent_name=PANEL_NAME,
@@ -38,9 +40,8 @@ async def async_register_panel(hass: HomeAssistant) -> None:
         module_url=PANEL_API_URL,
         sidebar_title=PANEL_TITLE,
         sidebar_icon=PANEL_ICON,
-        require_admin=True,
+        require_admin=admin_only,
         config={},
-        config_panel_domain=DOMAIN,
     )
 
 
