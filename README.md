@@ -15,6 +15,14 @@ This custom integration helps you remember important chores like changing air fi
 
 ---
 
+## ⚠️ Important Note
+This integration was created to fill a simple but important gap in Home Assistant: the ability to create recurring tasks without relying on multiple helpers and automations. It is intentionally minimal by design — focused solely on task tracking.
+Home Assistant already provides powerful features for dashboards, automations, and alerts, and this integration is meant to complement those, not replace them.
+Because it's a custom component with limited scope and resources, not all feature requests will be added or considered — especially if the functionality already exists natively in Home Assistant or falls outside the intended purpose of the integration.
+Thank you for understanding and helping keep this integration focused and maintainable.
+
+---
+
 ## 🖼️ Screenshots
 
 - ![Task Panel](screenshots/task-panel.PNG)
