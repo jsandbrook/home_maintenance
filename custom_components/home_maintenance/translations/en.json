@@ -5,11 +5,22 @@
       "user": {
         "title": "Configure Home Maintenance",
         "description": "Set up the Home Maintenance integration.",
-        "data": {}
+        "data": {
+          "admin_only": "Restrict panel to admins only"
+        }
       }
     },
     "abort": {
       "single_instance_allowed": "Only a single instance of Home Maintenance is allowed."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "admin_only": "Restrict panel to admins only"
+        }
+      }
     }
   }
 }
