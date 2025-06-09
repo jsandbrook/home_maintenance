@@ -36,7 +36,8 @@ CONFIG_STEP_USER_DATA_SCHEMA = vol.Schema(
 )
 
 
-def get_options_schema(config_entry: ConfigEntry):
+def get_options_schema(config_entry: ConfigEntry) -> vol.Schema:
+    """Return the schema for get options."""
     return vol.Schema(
         {
             vol.Optional(

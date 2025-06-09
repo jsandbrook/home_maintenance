@@ -9,7 +9,6 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 from .const import (
-    DOMAIN,
     PANEL_API_URL,
     PANEL_FILENAME,
     PANEL_ICON,

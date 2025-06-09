@@ -14,7 +14,7 @@ from homeassistant.helpers.entity_registry import RegistryEntry  # noqa: TC002
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.util import dt as dt_util
 
-from . import config_flow, const
+from . import const
 from .panel import (
     async_register_panel,
     async_unregister_panel,
