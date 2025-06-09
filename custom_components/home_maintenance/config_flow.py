@@ -52,15 +52,22 @@ class HomeMaintenanceConfigFlow(ConfigFlow, domain=DOMAIN):
 
     @staticmethod
     @callback
-    def async_get_options_flow(config_entry: ConfigEntry):
+    def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
+        """Handle callback for options flow."""
         return HomeMaintenanceOptionsFlowHandler(config_entry)
 
 
 class HomeMaintenanceOptionsFlowHandler(OptionsFlow):
-    def __init__(self, config_entry: ConfigEntry):
+    """Options flow for Home Maintenenance."""
+
+    def __init__(self, config_entry: ConfigEntry) -> None:
+        """Initialize setup of options flow."""
         self.config_entry = config_entry
 
-    async def async_step_init(self, user_input=None):
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None
+    ) -> ConfigFlowResult:
+        """Handle a flow initialized by the user."""
         if user_input is not None:
             result = self.async_create_entry(title="", data=user_input)
             self.hass.async_create_task(
