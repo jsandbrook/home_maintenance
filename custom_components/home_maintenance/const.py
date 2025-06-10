@@ -4,7 +4,7 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers import config_validation as cv
 
-VERSION = "1.0.0"
+VERSION = "1.3.0"
 NAME = "Home Maintenance"
 MANUFACTURER = "@TJPoorman"
 
@@ -32,6 +32,7 @@ SERVICE_RESET_SCHEMA = vol.Schema(
 CONFIG_STEP_USER_DATA_SCHEMA = vol.Schema(
     {
         vol.Optional("admin_only", default=True): cv.boolean,
+        vol.Optional("sidebar_title", default=PANEL_TITLE): cv.string,
     }
 )
 
@@ -46,5 +47,12 @@ def get_options_schema(config_entry: ConfigEntry) -> vol.Schema:
                     "admin_only", config_entry.data.get("admin_only", True)
                 ),
             ): cv.boolean,
+            vol.Optional(
+                "sidebar_title",
+                default=config_entry.options.get(
+                    "sidebar_title",
+                    config_entry.data.get("sidebar_title", PANEL_TITLE),
+                ),
+            ): cv.string,
         }
     )

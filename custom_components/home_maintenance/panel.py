@@ -32,13 +32,16 @@ async def async_register_panel(hass: HomeAssistant, entry: ConfigEntry) -> None:
         hass.data["home_maintenance_static_path_registered"] = True
 
     admin_only = entry.options.get("admin_only", entry.data.get("admin_only", True))
+    sidebar_title = entry.options.get(
+        "sidebar_title", entry.data.get("sidebar_title", PANEL_TITLE)
+    )
 
     await panel_custom.async_register_panel(
         hass,
         webcomponent_name=PANEL_NAME,
         frontend_url_path=PANEL_URL,
         module_url=PANEL_API_URL,
-        sidebar_title=PANEL_TITLE,
+        sidebar_title=sidebar_title,
         sidebar_icon=PANEL_ICON,
         require_admin=admin_only,
         config={},

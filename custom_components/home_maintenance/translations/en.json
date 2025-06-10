@@ -6,7 +6,8 @@
         "title": "Configure Home Maintenance",
         "description": "Set up the Home Maintenance integration.",
         "data": {
-          "admin_only": "Restrict panel to admins only"
+          "admin_only": "Restrict panel to admins only",
+          "sidebar_title": "The name shown in the sidebar for this integration."
         }
       }
     },
@@ -18,7 +19,8 @@
     "step": {
       "init": {
         "data": {
-          "admin_only": "Restrict panel to admins only"
+          "admin_only": "Restrict panel to admins only",
+          "sidebar_title": "The name shown in the sidebar for this integration."
         }
       }
     }
