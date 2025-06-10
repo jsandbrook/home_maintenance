@@ -15,6 +15,8 @@ body:
         required: true
       - label: This issue is not a duplicate feature request of [previous feature requests](https://github.com/TJPoorman/home_maintenance/issues?q=is%3Aissue+label%3A%22Feature+Request%22+).
         required: true
+      - label: I have read the "Important Note" section of the readme and this feature request fits the scope of the integration.
+        required: true
 
 - type: textarea
   attributes:
