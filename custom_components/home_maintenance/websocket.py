@@ -79,6 +79,25 @@ def websocket_update_task(
     store = hass.data[DOMAIN].get("store")
     task_id = msg["task_id"]
     updates = msg.get("updates", {})
+
+    last_str = updates["last_performed"]
+    if last_str:
+        parsed = dt_util.parse_datetime(last_str)
+        if parsed is None:
+            connection.send_error(
+                msg["id"], "invalid_date", f"Could not parse date: {last_str}"
+            )
+            return
+        parsed_local = dt_util.as_local(parsed)
+        last_performed = parsed_local.replace(
+            hour=0, minute=0, second=0, microsecond=0
+        ).isoformat()
+    else:
+        last_performed = (
+            dt_util.now().replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+        )
+    updates["last_performed"] = last_performed
+
     store.update_task(task_id, updates)
     connection.send_result(msg["id"], {"success": True})
 
