@@ -61,6 +61,11 @@ class HomeMaintenanceSensor(BinarySensorEntity):
             manufacturer=const.MANUFACTURER,
         )
 
+    @property
+    def icon(self) -> str | None:
+        """Return the icon for the task."""
+        return self.task.get("icon", "mdi:calendar-check")
+
     def _calculate_next_due(
         self, last_performed: datetime, interval_value: int, interval_type: str
     ) -> datetime:

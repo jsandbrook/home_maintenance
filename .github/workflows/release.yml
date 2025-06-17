@@ -16,9 +16,9 @@ jobs:
       - name: Patch manifest and zip
         run: |
           sed -i 's/v0.0.0/${{ steps.version.outputs.version }}/' custom_components/home_maintenance/manifest.json
-      
+
           cd custom_components/home_maintenance/
-          zip -r ../../home_maintenance.zip . -x '.*'
+          zip ../../home_maintenance.zip ./* translations/* panel/dist/* -x '.*'
       - name: Upload ZIP to Release
         uses: softprops/action-gh-release@v1
         with:

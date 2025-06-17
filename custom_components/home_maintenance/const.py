@@ -14,7 +14,8 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 PANEL_FILENAME = "panel/main.js"
 PANEL_URL = "home-maintenance"
-PANEL_API_URL = "/api/home_maintenance_static"
+PANEL_API_PATH = "/home_maintenance_static"
+PANEL_API_URL = PANEL_API_PATH + "/main.js"
 PANEL_TITLE = NAME
 PANEL_ICON = "mdi:hammer-wrench"
 PANEL_NAME = "home-maintenance-panel"
