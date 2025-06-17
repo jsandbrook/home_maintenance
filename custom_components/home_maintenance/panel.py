@@ -9,8 +9,8 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 from .const import (
+    PANEL_API_PATH,
     PANEL_API_URL,
-    PANEL_FILENAME,
     PANEL_ICON,
     PANEL_NAME,
     PANEL_TITLE,
@@ -22,12 +22,12 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_register_panel(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Register custom panel for Home Maintenance."""
-    view_url = os.path.join(os.path.dirname(__file__), PANEL_FILENAME)  # noqa: PTH118, PTH120
+    static_path = os.path.join(os.path.dirname(__file__), "panel", "dist")  # noqa: PTH118, PTH120
 
     # Register static path only once, since it cannot be removed on unload
     if not hass.data.setdefault("home_maintenance_static_path_registered", False):
         await hass.http.async_register_static_paths(
-            [StaticPathConfig(PANEL_API_URL, view_url, cache_headers=False)]
+            [StaticPathConfig(PANEL_API_PATH, static_path, cache_headers=False)]
         )
         hass.data["home_maintenance_static_path_registered"] = True
 

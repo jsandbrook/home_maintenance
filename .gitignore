@@ -5,6 +5,10 @@ __pycache__
 */build/*
 */dist/*
 
+# Typescript
+custom_components/home_maintenance/panel/node_modules
+package-lock.json
+
 
 # misc
 .coverage

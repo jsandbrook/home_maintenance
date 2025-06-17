@@ -1,0 +1,88 @@
+{
+    "common": {
+        "loading": "Loading...",
+        "none": "None"
+    },
+    "intervals": {
+        "day": "day",
+        "days": "Days",
+        "week": "week",
+        "weeks": "Weeks",
+        "month": "month",
+        "months": "Months"
+    },
+    "panel": {
+        "cards": {
+            "new": {
+                "title": "Create New Task",
+                "fields": {
+                    "title": {
+                        "heading": "Task Title"
+                    },
+                    "interval_value": {
+                        "heading": "Interval"
+                    },
+                    "interval_type": {
+                        "heading": "Interval Type"
+                    },
+                    "last_performed": {
+                        "heading": "Last Performed",
+                        "helper": "Optional — leave blank to use today"
+                    },
+                    "tag": {
+                        "heading": "Tag",
+                        "helper": "Optional"
+                    },
+                    "icon": {
+                        "heading": "Icon",
+                        "helper": "Optional"
+                    }
+                },
+                "actions": {
+                    "add_task": "Add Task"
+                },
+                "alerts": {
+                    "required": "Please fill all fields",
+                    "error": "Error adding task. See console for details."
+                }
+            },
+            "current": {
+                "title": "Current Tasks",
+                "no_items": "No tasks found.",
+                "every": "every",
+                "last": "Last",
+                "next": "Next Due",
+                "actions": {
+                    "complete": "Complete",
+                    "edit": "Edit",
+                    "remove": "Remove"
+                },
+                "confirm_remove": "Are you sure you want to remove this task?"
+            }
+        },
+        "dialog": {
+            "edit_task": {
+                "title": "Edit Task",
+                "fields": {
+                    "interval_value": {
+                        "heading": "Interval"
+                    },
+                    "interval_type": {
+                        "heading": "Interval Type"
+                    },
+                    "last_performed": {
+                        "heading": "Last Performed",
+                        "helper": "Optional — leave blank to use today"
+                    },
+                    "icon": {
+                        "heading": "Icon"
+                    }
+                },
+                "actions": {
+                    "cancel": "Cancel",
+                    "save": "Save"
+                }
+            }
+        }
+    }
+}
