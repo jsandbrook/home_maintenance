@@ -1,4 +1,4 @@
-import { LitElement, html } from "lit";
+import { LitElement, html, nothing } from "lit";
 import { property, state } from "lit/decorators.js";
 import type { HomeAssistant } from "custom-card-helpers";
 
@@ -124,6 +124,13 @@ export class HomeMaintenancePanel extends LitElement {
                 </ha-card>
             </div>
 
+            <ha-form
+                style="display: none"
+                .hass=${this.hass}
+                .data=${{ dummy: "" }}
+                .schema=${[{ name: "dummy", selector: { date: {} } }]}
+            ></ha-form>
+
             ${this.renderEditDialog()}
         `;
     }
@@ -170,14 +177,13 @@ export class HomeMaintenancePanel extends LitElement {
                 </div>
 
                 <div class="form-field">
-                    <ha-textfield
+                    <ha-date-input
                         label="${localize('panel.cards.new.fields.last_performed.heading', this.hass.language)}"
-                        type="date"
                         helper="${localize('panel.cards.new.fields.last_performed.helper', this.hass.language)}"
-                        helperPersistent
+                        .locale=${this.hass.locale}
                         .value=${this.lastPerformed}
-                        @input=${(e: Event) => this.lastPerformed = (e.target as HTMLInputElement).value}
-                    />
+                        @value-changed=${(e: Event) => this.lastPerformed = (e.target as HTMLInputElement).value}
+                    >
                 </div>
 
                 ${this.renderTagSelect?.() ?? null}
@@ -313,14 +319,13 @@ export class HomeMaintenancePanel extends LitElement {
                 </div>
 
                 <div class="form-field">
-                    <ha-textfield
+                    <ha-date-input
                         label="${localize('panel.dialog.edit_task.fields.last_performed.heading', this.hass.language)}"
                         helper="${localize('panel.dialog.edit_task.fields.last_performed.helper', this.hass.language)}"
-                        helperpersistent
-                        type="date"
+                        .locale=${this.hass.locale}
                         .value=${this.editingTask.last_performed.split("T")[0]}
-                        @input=${(e: Event) => (this.editingTask!.last_performed = (e.target as HTMLInputElement).value)}
-                    ></ha-textfield>
+                        @value-changed=${(e: Event) => this.editingTask!.last_performed = (e.target as HTMLInputElement).value}
+                    >
                 </div>
 
                 <div class="form-field">
