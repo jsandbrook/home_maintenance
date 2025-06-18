@@ -17,8 +17,8 @@ export const commonStyle = css`
     }
 
     .view > ha-card {
-        width: 810px;
-        max-width: 810px;
+        width: 880px;
+        max-width: 880px;
     }
 
     .view > ha-card:last-child {
@@ -41,7 +41,7 @@ export const commonStyle = css`
     ha-textfield,
     ha-select,
     ha-icon-picker {
-        min-width: 240px;
+        min-width: 265px;
     }
 
     .filler {
