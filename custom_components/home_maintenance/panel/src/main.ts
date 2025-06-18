@@ -195,6 +195,8 @@ export class HomeMaintenancePanel extends LitElement {
                 <div class="form-field">
                     <mwc-button @click=${this._handleAddTaskClick}>${localize('panel.cards.new.actions.add_task', this.hass.language)}</mwc-button>
                 </div>
+
+                <div class="filler"></div>
             </div>
         `;
     }
