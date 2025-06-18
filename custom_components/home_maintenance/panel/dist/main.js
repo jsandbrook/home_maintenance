@@ -10,16 +10,17 @@ Try polyfilling it using "@formatjs/intl-pluralrules"
     }
 
     .view {
-        height: calc(100vh - 112px);
+        height: calc(100vh - 40px);
         display: flex;
+        align-content: start;
         justify-content: center;
         flex-wrap: wrap;
-        gap: 16px;
+        gap: 8px;
     }
 
     .view > ha-card {
-        width: 850px;
-        max-width: 850px;
+        width: 810px;
+        max-width: 810px;
     }
 
     .view > ha-card:last-child {
@@ -33,9 +34,9 @@ Try polyfilling it using "@formatjs/intl-pluralrules"
 
     .form-row {
         display: flex;
+        justify-content: center;
         gap: 8px;
         flex-wrap: wrap;
-        margin-bottom: 16px;
     }
 
     .form-field,
@@ -43,6 +44,10 @@ Try polyfilling it using "@formatjs/intl-pluralrules"
     ha-select,
     ha-icon-picker {
         min-width: 240px;
+    }
+
+    .filler {
+        flex-grow: 1;
     }
 
     .break {
@@ -217,6 +222,8 @@ Try polyfilling it using "@formatjs/intl-pluralrules"
                 <div class="form-field">
                     <mwc-button @click=${this._handleAddTaskClick}>${p("panel.cards.new.actions.add_task",this.hass.language)}</mwc-button>
                 </div>
+
+                <div class="filler"></div>
             </div>
         `}renderTasks(){if(!this.hass)return x``;if(!this.tasks||this.tasks.length===0)return x`<li>No tasks found.</li>`;let i=new Date;return this.tasks.map(r=>{if(!this.hass)return x``;let n=new Date(this.computeISODate(r.last_performed)),s=new Date(n),a=r.interval_value,o=r.interval_type,l=r.interval_type;switch(l){case"days":s.setDate(s.getDate()+a),a===1&&(o=p("intervals.day",this.hass.language));break;case"weeks":s.setDate(s.getDate()+a*7),a===1&&(o=p("intervals.week",this.hass.language));break;case"months":s.setMonth(s.getMonth()+a),a===1&&(o=p("intervals.month",this.hass.language));break;default:throw new Error(`Unsupported interval type: ${l}`)}let u=s<=i,h=s.toLocaleDateString(),c=n.toLocaleDateString(),f=r.icon;return x`
                 <li class="task-item">

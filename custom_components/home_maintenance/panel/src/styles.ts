@@ -8,16 +8,17 @@ export const commonStyle = css`
     }
 
     .view {
-        height: calc(100vh - 112px);
+        height: calc(100vh - 40px);
         display: flex;
+        align-content: start;
         justify-content: center;
         flex-wrap: wrap;
-        gap: 16px;
+        gap: 8px;
     }
 
     .view > ha-card {
-        width: 850px;
-        max-width: 850px;
+        width: 810px;
+        max-width: 810px;
     }
 
     .view > ha-card:last-child {
@@ -31,9 +32,9 @@ export const commonStyle = css`
 
     .form-row {
         display: flex;
+        justify-content: center;
         gap: 8px;
         flex-wrap: wrap;
-        margin-bottom: 16px;
     }
 
     .form-field,
@@ -41,6 +42,10 @@ export const commonStyle = css`
     ha-select,
     ha-icon-picker {
         min-width: 240px;
+    }
+
+    .filler {
+        flex-grow: 1;
     }
 
     .break {
