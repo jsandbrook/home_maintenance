@@ -12,6 +12,11 @@ export function getIntervalTypeLabels(lang: string): Record<IntervalType, string
     };
 }
 
+export interface IntegrationConfig {
+    data: Record<string, any>;
+    options: Record<string, any>;
+}
+
 export interface Tag {
     id: string;
     name?: string;
