@@ -1,11 +1,12 @@
-import { LitElement, html, nothing } from "lit";
+import { LitElement, html } from "lit";
 import { property, state } from "lit/decorators.js";
 import type { HomeAssistant } from "custom-card-helpers";
 
 import { localize } from '../localize/localize';
+import { VERSION } from "./const";
 import { commonStyle } from './styles'
-import { IntervalType, INTERVAL_TYPES, getIntervalTypeLabels, Task, Tag } from './types';
-import { completeTask, loadTags, loadTask, loadTasks, removeTask, saveTask, updateTask } from './data/websockets';
+import { IntegrationConfig, IntervalType, INTERVAL_TYPES, getIntervalTypeLabels, Task, Tag } from './types';
+import { completeTask, getConfig, loadTags, loadTask, loadTasks, removeTask, saveTask, updateTask } from './data/websockets';
 
 export class HomeMaintenancePanel extends LitElement {
     @property() hass?: HomeAssistant;
@@ -13,6 +14,7 @@ export class HomeMaintenancePanel extends LitElement {
 
     @state() private tags: Tag[] | null = null;
     @state() private tasks: Task[] = [];
+    @state() private config: IntegrationConfig | null = null;
 
     // New Task form state
     @state() title = "";
@@ -28,6 +30,7 @@ export class HomeMaintenancePanel extends LitElement {
     private async loadData() {
         this.tags = await loadTags(this.hass!);
         this.tasks = await loadTasks(this.hass!);
+        this.config = await getConfig(this.hass!);
     }
 
     private async resetForm() {
@@ -110,6 +113,18 @@ export class HomeMaintenancePanel extends LitElement {
         }
 
         return html`
+            <div class="header">
+                <div class="toolbar">
+                    <ha-menu-button .hass=${this.hass} .narrow=${this.narrow}></ha-menu-button>
+                    <div class="main-title">
+                        ${this.config?.options.sidebar_title}
+                    </div>
+                    <div class="version">
+                        v${VERSION}
+                    </div>
+                </div>
+            </div>
+
             <div class="view">
                 <ha-card header="${localize('panel.cards.new.title', this.hass.language)}">
                     <div class="card-content">${this.renderForm()}</div>

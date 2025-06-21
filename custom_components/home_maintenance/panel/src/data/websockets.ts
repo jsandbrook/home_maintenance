@@ -1,4 +1,4 @@
-import { Tag, Task } from '../types';
+import { Tag, Task, IntegrationConfig } from '../types';
 import type { HomeAssistant } from "custom-card-helpers";
 
 export const loadTags = (hass: HomeAssistant): Promise<Tag[]> =>
@@ -39,4 +39,9 @@ export const updateTask = (hass: HomeAssistant, payload: Record<string, any>): P
     hass.callWS({
         type: 'home_maintenance/update_task',
         ...payload,
+    })
+
+export const getConfig = (hass: HomeAssistant): Promise<IntegrationConfig> =>
+    hass.callWS({
+        type: 'home_maintenance/get_config',
     })

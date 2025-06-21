@@ -125,6 +125,30 @@ def websocket_remove_task(
     connection.send_result(msg["id"], {"success": True})
 
 
+@callback
+def websocket_get_config(
+    hass: HomeAssistant, connection: connection.ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """Retrieve integration configuration."""
+    entries = hass.config_entries.async_entries(DOMAIN)
+
+    if not entries:
+        connection.send_error(
+            msg["id"], "not_found", "No config entry found for your_domain"
+        )
+        return
+
+    entry = entries[0]
+
+    connection.send_result(
+        msg["id"],
+        {
+            "data": dict(entry.data),
+            "options": dict(entry.options),
+        },
+    )
+
+
 async def async_register_websockets(hass: HomeAssistant) -> None:
     """Register websocket commands."""
     websocket_api.async_register_command(
@@ -198,6 +222,17 @@ async def async_register_websockets(hass: HomeAssistant) -> None:
             {
                 vol.Required("type"): "home_maintenance/remove_task",
                 vol.Required("task_id"): str,
+            }
+        ),
+    )
+
+    websocket_api.async_register_command(
+        hass,
+        "home_maintenance/get_config",
+        websocket_get_config,
+        messages.BASE_COMMAND_MESSAGE_SCHEMA.extend(
+            {
+                vol.Required("type"): "home_maintenance/get_config",
             }
         ),
     )
