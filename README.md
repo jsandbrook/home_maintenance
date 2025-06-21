@@ -64,6 +64,8 @@ Download the <a href="https://github.com/TJPoorman/home_maintenance/releases">la
   - How often it needs to be done
   - Select the interval period (Defaults to days)
   - The last time you did it (Optional. If omitted will be today)
+  - Select an NFC tag (Optional. Will mark the task complete when scanned)
+  - Select an icon (Optional)
   - Click **Add Task**
 - Tasks will show if they are due or overdue
 - Click **Complete** to reset the Last Performed date to today
@@ -86,12 +88,15 @@ Download the <a href="https://github.com/TJPoorman/home_maintenance/releases">la
 
 Marks a specific task as completed and updates its `last_performed` and `next_due`.
 
+Optionally specify a date for `last_performed`.
+
 #### Example service call:
 
 ```yaml
 service: home_maintenance.reset_last_performed
 data:
   entity_id: binary_sensor.clean_gutters
+  performed_date: "2025-06-19"
 ```
 
 ---
@@ -99,6 +104,8 @@ data:
 ## 💬 Need Help?
 
 Open an issue here on GitHub or ask in the Home Assistant community.
+
+[Home Assistant Community Thread](https://community.home-assistant.io/t/new-integration-home-maintenance-track-recurring-tasks-in-home-assistant/897324)
 
 ---
 
