@@ -35,26 +35,31 @@ export const commonStyle = css`
     }
 
     .view {
-        height: calc(100vh - 40px);
+        height: calc(100vh - 65px);
         display: flex;
         align-content: start;
         justify-content: center;
         flex-wrap: wrap;
-        gap: 8px;
-    }
-
-    .view > ha-card {
-        width: 880px;
-        max-width: 880px;
-    }
-
-    .view > ha-card:last-child {
-        margin-bottom: 20px;
+        align-items: flex-start;
     }
 
     ha-card {
         display: block;
-        padding: 16px;
+        margin: 5px;
+    }
+
+    .card-new {
+        width: 500px;
+        max-width: 500px;
+    }
+
+    .card-current {
+        width: 850px;
+        max-width: 850px;
+    }
+
+    ha-expansion-panel {
+        --input-fill-color: none;
     }
 
     .form-row {
@@ -140,15 +145,13 @@ export const commonStyle = css`
         color: var(--primary-text-color);
     }
 
-    ha-dialog .form-field {
-        margin-bottom: 16px;
-        display: flex;
-        flex-direction: column;
+    ha-dialog {
+        --mdc-dialog-min-width: 600px;
     }
 
-    ha-dialog .secondary {
-        font-size: 12px;
-        color: var(--secondary-text-color);
-        margin-top: 4px;
+    @media (max-width: 600px) {
+        ha-dialog {
+        --mdc-dialog-min-width: auto;
+        }
     }
 `;

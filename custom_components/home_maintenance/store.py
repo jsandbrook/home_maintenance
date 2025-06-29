@@ -67,7 +67,9 @@ class TaskStore:
         """Get tasks by tag id."""
         return [attr.asdict(t) for t in self._tasks.values() if t.tag_id == tag_id]
 
-    def add(self, task: HomeMaintenanceTask) -> str | None:
+    def add(
+        self, task: HomeMaintenanceTask, labels: list[str] | None = None
+    ) -> str | None:
         """Add new task."""
         add_entities = self.hass.data[const.DOMAIN].get("add_entities")
         if not add_entities:
@@ -81,7 +83,9 @@ class TaskStore:
             raise RuntimeError(msg)
             return None
 
-        entity = HomeMaintenanceSensor(self.hass, attr.asdict(task), device_id)
+        entity = HomeMaintenanceSensor(
+            self.hass, attr.asdict(task), device_id, labels=labels
+        )
         add_entities([entity])
         self._tasks[task.id] = task
         self.hass.data[const.DOMAIN]["entities"][task.id] = entity

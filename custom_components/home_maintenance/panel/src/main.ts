@@ -1,12 +1,29 @@
-import { LitElement, html } from "lit";
+import {
+    mdiCheckCircleOutline,
+    mdiDelete,
+    mdiPencil,
+} from "@mdi/js";
+import { LitElement, html, nothing } from "lit";
 import { property, state } from "lit/decorators.js";
 import type { HomeAssistant } from "custom-card-helpers";
+import { formatDateNumeric } from "custom-card-helpers";
 
 import { localize } from '../localize/localize';
 import { VERSION } from "./const";
+import { loadConfigDashboard } from "./helpers";
 import { commonStyle } from './styles'
-import { IntegrationConfig, IntervalType, INTERVAL_TYPES, getIntervalTypeLabels, Task, Tag } from './types';
-import { completeTask, getConfig, loadTags, loadTask, loadTasks, removeTask, saveTask, updateTask } from './data/websockets';
+import { EntityRegistryEntry, IntegrationConfig, IntervalType, INTERVAL_TYPES, getIntervalTypeLabels, Label, Task, Tag } from './types';
+import { completeTask, getConfig, loadLabelRegistry, loadRegistryEntries, loadTags, loadTask, loadTasks, removeTask, saveTask, updateTask } from './data/websockets';
+
+interface TaskFormData {
+    title: string;
+    interval_value: number | "";
+    interval_type: string;
+    last_performed: string;
+    icon: string;
+    label: string[];
+    tag: string;
+}
 
 export class HomeMaintenancePanel extends LitElement {
     @property() hass?: HomeAssistant;
@@ -15,33 +32,336 @@ export class HomeMaintenancePanel extends LitElement {
     @state() private tags: Tag[] | null = null;
     @state() private tasks: Task[] = [];
     @state() private config: IntegrationConfig | null = null;
+    @state() private registry: EntityRegistryEntry[] = [];
+    @state() private labelRegistry: Label[] = [];
 
     // New Task form state
-    @state() title = "";
-    @state() intervalValue: number | "" = "";
-    @state() intervalType = "days";
-    @state() lastPerformed = "";
-    @state() tagId: string = " ";
-    @state() icon: string = "";
+    @state() private _formData: TaskFormData = {
+        title: "",
+        interval_value: "",
+        interval_type: "days",
+        last_performed: "",
+        icon: "",
+        label: [],
+        tag: "",
+    };
+    private _advancedOpen: boolean = false;
 
     // Edit dialog state
-    @state() private editingTask: Task | null = null;
+    @state() private _editingTaskId: string | null = null;
+    @state() private _editFormData: TaskFormData = {
+        title: "",
+        interval_value: "",
+        interval_type: "days",
+        last_performed: "",
+        icon: "",
+        label: [],
+        tag: "",
+    };
+
+    private get _columns() {
+        return {
+            icon: {
+                title: "",
+                moveable: false,
+                showNarrow: false,
+                label: "icon",
+                type: "icon",
+                template: (task: Task) =>
+                    task.icon ? html`<ha-icon .icon=${task.icon}></ha-icon>` : nothing,
+            },
+            tagIcon: {
+                title: "",
+                moveable: false,
+                showNarrow: false,
+                label: "tag",
+                type: "icon",
+                template: (task: any) =>
+                    task.tagIcon ? html`<ha-icon .icon=${task.tagIcon}></ha-icon>` : nothing,
+            },
+            title: {
+                title: 'Title',
+                main: true,
+                showNarrow: true,
+                sortable: true,
+                filterable: true,
+                grows: true,
+                extraTemplate: (task: Task) => {
+                    const entity = this.registry.find((entry) => entry.unique_id === task.id);
+                    if (!entity) return nothing;
+
+                    const labels = this.labelRegistry.filter((lr) => entity.labels.includes(lr.label_id));
+
+                    return labels.length
+                        ? html`<ha-data-table-labels .labels=${labels}></ha-data-table-labels>`
+                        : nothing;
+                },
+            },
+            interval_days: {
+                title: 'Interval',
+                showNarrow: false,
+                sortable: true,
+                minWidth: "100px",
+                maxWidth: "100px",
+                template: (task: Task) => {
+                    const type = task.interval_type;
+                    const isSingular = task.interval_value === 1;
+                    const labelKey = isSingular ? type.slice(0, -1) : type;
+                    return `${task.interval_value} ${localize(`intervals.${labelKey}`, this.hass!.language)}`;
+                }
+            },
+            last_performed: {
+                title: 'Last Performed',
+                showNarrow: false,
+                sortable: true,
+                minWidth: "150px",
+                maxWidth: "150px",
+                template: (task: Task) => {
+                    if (!task.last_performed) return "-";
+
+                    const date = new Date(this.computeISODate(task.last_performed));
+                    return formatDateNumeric(date, this.hass!.locale);
+                }
+            },
+            next_due: {
+                title: localize('panel.cards.current.next', this.hass!.language),
+                showNarrow: true,
+                sortable: true,
+                direction: "asc",
+                minWidth: "100px",
+                maxWidth: "100px",
+                template: (task: any) => {
+                    const now = new Date();
+                    const next = new Date(task.next_due);
+                    const isDue = next <= now;
+
+                    return html`
+                        <span style=${isDue ? "color: var(--error-color, red); font-weight: bold;" : ""}>
+                            ${formatDateNumeric(next, this.hass!.locale)}
+                        </span>` || "—";
+                },
+            },
+            complete: {
+                minWidth: "64px",
+                maxWidth: "64px",
+                sortable: false,
+                groupable: false,
+                showNarrow: true,
+                moveable: false,
+                hideable: false,
+                type: "overflow",
+                template: (task: Task) => html`
+                <ha-icon-button
+                    @click=${() => this._handleCompleteTaskClick(task.id)}
+                    .label="Complete"
+                    title="Mark Task Complete"
+                    .path=${mdiCheckCircleOutline}
+                ></ha-icon-button>
+              `,
+            },
+            actions: {
+                title: "",
+                label: "actions",
+                showNarrow: true,
+                moveable: false,
+                hideable: false,
+                type: "overflow-menu",
+                template: (task: Task) => html`
+                    <ha-icon-overflow-menu
+                        .hass=${this.hass}
+                        narrow
+                        .items=${[
+                        {
+                            label: localize('panel.cards.current.actions.edit', this.hass!.language),
+                            path: mdiPencil,
+                            action: () => this._handleOpenEditDialogClick(task.id),
+                        },
+                        {
+                            label: localize('panel.cards.current.actions.remove', this.hass!.language),
+                            path: mdiDelete,
+                            action: () => this._handleRemoveTaskClick(task.id),
+                            warning: true,
+                        },
+                    ]}
+                    >
+                    </ha-icon-overflow-menu>
+                `,
+            },
+        }
+    };
+
+    private get _columnsToDisplay() {
+        return Object.fromEntries(
+            Object.entries(this._columns).filter(([_, col]) =>
+                this.narrow ? col.showNarrow !== false : true
+            )
+        );
+    }
+
+    private get _rows() {
+        return this.tasks.map((task: Task) => ({
+            icon: task.icon,
+            id: task.id,
+            title: task.title,
+            interval_value: task.interval_value,
+            interval_type: task.interval_type,
+            last_performed: task.last_performed ?? 'Never',
+            interval_days: (() => {
+                switch (task.interval_type) {
+                    case "days":
+                        return task.interval_value;
+                    case "weeks":
+                        return task.interval_value * 7;
+                    case "months":
+                        return task.interval_value * 30;
+                    default:
+                        return Number.MAX_SAFE_INTEGER;
+                }
+            })(),
+            next_due: (() => {
+                const next = new Date(task.last_performed);
+                const intervalType: IntervalType = task.interval_type;
+
+                switch (intervalType) {
+                    case "days":
+                        next.setDate(next.getDate() + task.interval_value);
+                        break;
+                    case "weeks":
+                        next.setDate(next.getDate() + task.interval_value * 7);
+                        break;
+                    case "months":
+                        next.setMonth(next.getMonth() + task.interval_value);
+                        break;
+                    default:
+                        throw new Error(`Unsupported interval type: ${intervalType}`);
+                }
+
+                const nextDue = next.toLocaleDateString();
+
+                return nextDue;
+            })(),
+            tagIcon: (() => task.tag_id && task.tag_id.trim() !== "" ? "mdi:tag" : undefined)(),
+        }));
+    }
+
+    private get _basicSchema() {
+        return [
+            { name: "title", required: true, selector: { text: {} }, },
+            { name: "interval_value", required: true, selector: { number: { min: 1, mode: "box" } }, },
+            {
+                name: "interval_type",
+                required: true,
+                selector: {
+                    select: {
+                        options: INTERVAL_TYPES.map((type) => ({
+                            value: type,
+                            label: getIntervalTypeLabels(this.hass!.language)[type],
+                        })),
+                        mode: "dropdown"
+                    },
+                },
+            },
+        ]
+    };
+
+    private get _advancedSchema() {
+        return [
+            { name: "last_performed", selector: { date: {} }, },
+            { name: "icon", selector: { icon: {} }, },
+            { name: "label", selector: { label: { multiple: true } }, },
+            { name: "tag", selector: { entity: { filter: { domain: "tag" } } }, },
+        ]
+    };
+
+    private get _editSchema() {
+        return [
+            { name: "interval_value", required: true, selector: { number: { min: 1, mode: "box" } }, },
+            {
+                name: "interval_type",
+                required: true,
+                selector: {
+                    select: {
+                        options: INTERVAL_TYPES.map((type) => ({
+                            value: type,
+                            label: getIntervalTypeLabels(this.hass!.language)[type],
+                        })),
+                        mode: "dropdown"
+                    },
+                },
+            },
+            { type: "constant", name: localize('panel.dialog.edit_task.sections.optional', this.hass!.language), disabled: true },
+            { name: "last_performed", selector: { date: {} }, },
+            { name: "icon", selector: { icon: {} }, },
+            { name: "label", selector: { label: { multiple: true } }, },
+            { name: "tag", selector: { entity: { filter: { domain: "tag" } } }, },
+        ]
+    };
+
+    private _computeLabel = (schema: { name: string }): string => {
+        try {
+            return localize(`panel.cards.new.fields.${schema.name}.heading`, this.hass!.language) ?? schema.name;
+        } catch {
+            return schema.name;
+        }
+    }
+
+    private _computeHelper = (schema: { name: string }): string => {
+        try {
+            return localize(`panel.cards.new.fields.${schema.name}.helper`, this.hass!.language) ?? "";
+        } catch {
+            return "";
+        }
+    }
+
+    private _computeEditLabel = (schema: { name: string }): string => {
+        try {
+            return localize(`panel.dialog.edit_task.fields.${schema.name}.heading`, this.hass!.language) ?? schema.name;
+        } catch {
+            return schema.name;
+        }
+    }
+
+    private _computeEditHelper = (schema: { name: string }): string => {
+        try {
+            return localize(`panel.dialog.edit_task.fields.${schema.name}.helper`, this.hass!.language) ?? "";
+        } catch {
+            return "";
+        }
+    }
 
     private async loadData() {
+        await loadConfigDashboard();
         this.tags = await loadTags(this.hass!);
         this.tasks = await loadTasks(this.hass!);
         this.config = await getConfig(this.hass!);
+        this.registry = await loadRegistryEntries(this.hass!);
+        this.labelRegistry = await loadLabelRegistry(this.hass!);
     }
 
     private async resetForm() {
-        this.title = "";
-        this.intervalValue = "";
-        this.intervalType = "days";
-        this.lastPerformed = "";
-        this.tagId = " ";
-        this.icon = "";
+        this._formData = {
+            title: "",
+            interval_value: "",
+            interval_type: "days",
+            last_performed: "",
+            icon: "",
+            label: [],
+            tag: "",
+        };
 
         this.tasks = await loadTasks(this.hass!);
+    }
+
+    private async resetEditForm() {
+        this._editFormData = {
+            title: "",
+            interval_value: "",
+            interval_type: "days",
+            last_performed: "",
+            icon: "",
+            label: [],
+            tag: "",
+        };
     }
 
     private computeISODate(dateStr: string): string {
@@ -78,33 +398,6 @@ export class HomeMaintenancePanel extends LitElement {
         this.loadData();
     }
 
-    renderTagSelect() {
-        if (!this.hass) return html``;
-
-        return html`
-            <div class="form-field">
-                <ha-select
-                label="${localize('panel.cards.new.fields.tag.heading', this.hass.language)}"
-                floatLabel
-                helper="${localize('panel.cards.new.fields.tag.helper', this.hass.language)}"
-                helperPersistent
-                .value=${this.tagId || " "}
-                @change=${(e: Event) => this.tagId = (e.target as HTMLSelectElement).value || ""}
-                fixedMenuPosition
-                naturalMenuWidth
-                >
-                <mwc-list-item value=" ">${localize('common.none', this.hass.language)}</mwc-list-item>
-                ${this.tags
-                ? this.tags.map((tag) => html`
-                    <mwc-list-item value=${tag.id}>${tag.name || tag.id}</mwc-list-item>
-                    `
-                )
-                : html`<mwc-list-item disabled>${localize('common.loading', this.hass.language)}</mwc-list-item>`}
-                </ha-select>
-            </div>
-        `;
-    }
-
     render() {
         if (!this.hass) return html``;
 
@@ -126,25 +419,20 @@ export class HomeMaintenancePanel extends LitElement {
             </div>
 
             <div class="view">
-                <ha-card header="${localize('panel.cards.new.title', this.hass.language)}">
+                <ha-card
+                    header="${localize('panel.cards.new.title', this.hass.language)}"
+                    class="card-new"
+                >
                     <div class="card-content">${this.renderForm()}</div>
                 </ha-card>
 
-                <div class="break"></div>
-
-                <ha-card header="${localize('panel.cards.current.title', this.hass.language)}">
-                    <div class="card-content">
-                        <ul id="task-list" class="task-list">${this.renderTasks()}</ul>
-                    </div>
+                <ha-card
+                    header="${localize('panel.cards.current.title', this.hass.language)}"
+                    class="card-current"
+                >
+                    <div class="card-content">${this.renderTasks()}</div>
                 </ha-card>
             </div>
-
-            <ha-form
-                style="display: none"
-                .hass=${this.hass}
-                .data=${{ dummy: "" }}
-                .schema=${[{ name: "dummy", selector: { date: {} } }]}
-            ></ha-form>
 
             ${this.renderEditDialog()}
         `;
@@ -153,71 +441,35 @@ export class HomeMaintenancePanel extends LitElement {
     renderForm() {
         if (!this.hass) return html``;
 
-        const intervalTypeLabels = getIntervalTypeLabels(this.hass.language);
-
         return html`
-            <div class="form-row">
-                <div class="form-field">
-                    <ha-textfield
-                        label="${localize('panel.cards.new.fields.title.heading', this.hass.language)}"
-                        .value=${this.title}
-                        @input=${(e: Event) => this.title = (e.target as HTMLInputElement).value}
-                    />
-                </div>
+            <ha-form
+                .hass=${this.hass}
+                .schema=${this._basicSchema}
+                .computeLabel=${this._computeLabel.bind(this)}
+                .computeHelper=${this._computeHelper.bind(this)}
+                .data=${this._formData}
+                @value-changed=${(e: CustomEvent) => this._handleFormValueChanged(e)}
+            ></ha-form>
 
-                <div class="form-field">
-                    <ha-textfield
-                        label="${localize('panel.cards.new.fields.interval_value.heading', this.hass.language)}"
-                        type="number"
-                        min="1"
-                        .value=${String(this.intervalValue)}
-                        @input=${(e: Event) => this.intervalValue = parseInt((e.target as HTMLInputElement).value)}
-                    />
-                </div>
+            <ha-expansion-panel
+                header="${localize('panel.cards.new.sections.optional', this.hass.language)}"
+                .opened=${this._advancedOpen}
+                @opened-changed=${(e: CustomEvent) => (this._advancedOpen = e.detail.value)}
+            >
+                <ha-form
+                    .hass=${this.hass}
+                    .data=${this._formData}
+                    .schema=${this._advancedSchema}
+                    .computeLabel=${this._computeLabel.bind(this)}
+                    .computeHelper=${this._computeHelper.bind(this)}
+                    @value-changed=${(e: CustomEvent) => this._handleFormValueChanged(e)}
+                ></ha-form>
+            </ha-expansion-panel>
 
-                <div class="form-field">
-                    <ha-select
-                        label="${localize('panel.cards.new.fields.interval_type.heading', this.hass.language)}"
-                        .value=${this.intervalType}
-                        @change=${(e: Event) => this.intervalType = (e.target as HTMLSelectElement).value}
-                        fixedMenuPosition
-                        naturalMenuWidth
-                    >
-                    ${INTERVAL_TYPES.map((type) => html`
-                        <mwc-list-item .value=${type}>
-                            ${intervalTypeLabels[type]}
-                        </mwc-list-item>
-                    `)}
-                    </ha-select>
-                </div>
-
-                <div class="form-field">
-                    <ha-date-input
-                        label="${localize('panel.cards.new.fields.last_performed.heading', this.hass.language)}"
-                        helper="${localize('panel.cards.new.fields.last_performed.helper', this.hass.language)}"
-                        .locale=${this.hass.locale}
-                        .value=${this.lastPerformed}
-                        @value-changed=${(e: Event) => this.lastPerformed = (e.target as HTMLInputElement).value}
-                    >
-                </div>
-
-                ${this.renderTagSelect?.() ?? null}
-
-                <div class="form-field">
-                    <ha-icon-picker
-                        label="${localize('panel.cards.new.fields.icon.heading', this.hass.language)}"
-                        helper="${localize('panel.cards.new.fields.icon.helper', this.hass.language)}"
-                        helperPersistent
-                        .value=${this.icon}
-                        @value-changed=${(e: CustomEvent) => this.icon = e.detail.value}
-                    ></ha-icon-picker>
-                </div>
-
-                <div class="form-field">
-                    <mwc-button @click=${this._handleAddTaskClick}>${localize('panel.cards.new.actions.add_task', this.hass.language)}</mwc-button>
-                </div>
-
-                <div class="filler"></div>
+            <div class="form-field">
+                <mwc-button @click=${this._handleAddTaskClick}>
+                    ${localize('panel.cards.new.actions.add_task', this.hass.language)}
+                </mwc-button>
             </div>
         `;
     }
@@ -226,134 +478,47 @@ export class HomeMaintenancePanel extends LitElement {
         if (!this.hass) return html``;
 
         if (!this.tasks || this.tasks.length === 0) {
-            return html`<li>No tasks found.</li>`;
+            return html`<span>${localize('common.no_tasks', this.hass!.language)}</span>`;
         }
 
-        const now = new Date();
-
-        return this.tasks.map((task) => {
-            if (!this.hass) return html``;
-
-            const last = new Date(this.computeISODate(task.last_performed));
-            const next = new Date(last);
-            const value = task.interval_value;
-            let typeLabel: string = task.interval_type;
-            const intervalType: IntervalType = task.interval_type;
-
-            switch (intervalType) {
-                case "days":
-                    next.setDate(next.getDate() + value);
-                    if (value === 1) typeLabel = localize('intervals.day', this.hass.language);
-                    break;
-                case "weeks":
-                    next.setDate(next.getDate() + value * 7);
-                    if (value === 1) typeLabel = localize('intervals.week', this.hass.language);
-                    break;
-                case "months":
-                    next.setMonth(next.getMonth() + value);
-                    if (value === 1) typeLabel = localize('intervals.month', this.hass.language);
-                    break;
-                default:
-                    throw new Error(`Unsupported interval type: ${intervalType}`);
-            }
-
-            const isDue = next <= now;
-            const nextDue = next.toLocaleDateString();
-            const lastDone = last.toLocaleDateString();
-            const icon = task.icon;
-
-            return html`
-                <li class="task-item">
-                    <div class="task-content">
-                        <div class="task-header">
-                            <ha-icon icon="${icon}" class="task-icon"></ha-icon>
-                            <strong>${task.title}</strong> — ${localize('panel.cards.current.every', this.hass.language)} ${task.interval_value} ${typeLabel}
-                        </div>
-                        <div>${localize('panel.cards.current.last', this.hass.language)}: ${lastDone}</div>
-                        <div>
-                            ${localize('panel.cards.current.next', this.hass.language)}:
-                            <span class=${isDue ? "due-soon" : ""}>${nextDue}</span>
-                        </div>
-                    </div>
-                    <div class="task-actions">
-                        <mwc-button @click=${this._handleCompleteTaskClick.bind(this, task.id)}>
-                            <ha-icon icon="mdi:check-circle-outline"></ha-icon> ${localize('panel.cards.current.actions.complete', this.hass.language)}
-                        </mwc-button>
-                        <mwc-button @click=${this._handleOpenEditDialogClick.bind(this, task.id)}>
-                            <ha-icon icon="mdi:pencil-outline"></ha-icon> ${localize('panel.cards.current.actions.edit', this.hass.language)}
-                        </mwc-button>
-                        <mwc-button class="warning" @click=${this._handleRemoveTaskClick.bind(this, task.id)}>
-                            <ha-icon icon="mdi:trash-can-outline"></ha-icon> ${localize('panel.cards.current.actions.remove', this.hass.language)}
-                        </mwc-button>
-                    </div>
-                </li>
-            `;
-        });
+        return html`
+            <div class="table-wrapper">
+                <ha-data-table
+                    .hass=${this.hass}
+                    .columns=${this._columnsToDisplay}
+                    .data=${this._rows}
+                    .narrow=${this.narrow}
+                    auto-height
+                    id="tasks-table"
+                    class="tasks-table"
+                    clickable
+                >
+                </ha-data-table>
+            </div>
+        `;
     }
 
     renderEditDialog() {
         if (!this.hass) return html``;
 
-        if (!this.editingTask) return html``;
-
-        const intervalTypeLabels = getIntervalTypeLabels(this.hass.language);
+        if (!this._editingTaskId) return html``;
 
         return html`
             <ha-dialog
                 open
-                heading="${localize('panel.dialog.edit_task.title', this.hass.language)}: ${this.editingTask.title}"
+                heading="${localize('panel.dialog.edit_task.title', this.hass.language)}: ${this._editFormData.title}"
                 @closed=${this._handleDialogClosed}
             >
-                <div class="form-field">
-                    <ha-textfield
-                        label="${localize('panel.dialog.edit_task.fields.interval_value.heading', this.hass.language)}"
-                        type="number"
-                        .value=${String(this.editingTask.interval_value)}
-                        @input=${(e: Event) => {
-                const val = parseInt((e.target as HTMLInputElement).value);
-                if (!isNaN(val)) this.editingTask!.interval_value = val;
-            }}
-                    ></ha-textfield>
-                </div>
+                <ha-form
+                    .hass=${this.hass}
+                    .schema=${this._editSchema}
+                    .computeLabel=${this._computeEditLabel.bind(this)}
+                    .computeHelper=${this._computeEditHelper.bind(this)}
+                    .data=${this._editFormData}
+                    @value-changed=${(e: CustomEvent) => this._handleEditFormValueChanged(e)}
+                ></ha-form>
 
-                <div class="form-field">
-                    <ha-select
-                        .value=${this.editingTask.interval_type}
-                        @selected=${(e: Event) => {
-                e.stopPropagation();
-                this.editingTask!.interval_type = (e.target as HTMLSelectElement).value as IntervalType
-            }}
-                        label="${localize('panel.dialog.edit_task.fields.interval_type.heading', this.hass.language)}"
-                    >
-                    ${INTERVAL_TYPES.map((type) => html`
-                        <mwc-list-item .value=${type}>
-                            ${intervalTypeLabels[type]}
-                        </mwc-list-item>
-                    `)}
-                    </ha-select>
-                </div>
-
-                <div class="form-field">
-                    <ha-date-input
-                        label="${localize('panel.dialog.edit_task.fields.last_performed.heading', this.hass.language)}"
-                        helper="${localize('panel.dialog.edit_task.fields.last_performed.helper', this.hass.language)}"
-                        .locale=${this.hass.locale}
-                        .value=${this.editingTask.last_performed.split("T")[0]}
-                        @value-changed=${(e: Event) => this.editingTask!.last_performed = (e.target as HTMLInputElement).value}
-                    >
-                </div>
-
-                <div class="form-field">
-                    <ha-icon-picker
-                        label="${localize('panel.dialog.edit_task.fields.icon.heading', this.hass.language)}"
-                        helper="${localize('panel.dialog.edit_task.fields.icon.helper', this.hass.language)}"
-                        helperpersistent
-                        .value=${this.editingTask.icon}
-                        @value-changed=${(e: CustomEvent) => this.editingTask!.icon = e.detail.value}
-                    ></ha-icon-picker>
-                </div>
-
-                <mwc-button slot="secondaryAction" @click=${() => (this.editingTask = null)}>
+                <mwc-button slot="secondaryAction" @click=${() => (this._editingTaskId = null)}>
                     ${localize('panel.dialog.edit_task.actions.cancel', this.hass.language)}
                 </mwc-button>
                 <mwc-button slot="primaryAction" @click=${this._handleSaveEditClick}>
@@ -364,28 +529,23 @@ export class HomeMaintenancePanel extends LitElement {
     }
 
     private async _handleAddTaskClick() {
-        if (!this.title.trim() || !this.intervalValue || !this.intervalType) {
-            const msg = localize('panel.cards.new.alerts.required', this.hass!.language)
+        const { title, interval_value, interval_type, last_performed, tag, icon, label } = this._formData;
+
+        if (!title?.trim() || !interval_value || !interval_type) {
+            const msg = localize("panel.cards.new.alerts.required", this.hass!.language);
             alert(msg);
             return;
         }
 
         const payload: Record<string, any> = {
-            title: this.title.trim(),
-            interval_value: this.intervalValue,
-            interval_type: this.intervalType,
-            last_performed: this.computeISODate(this.lastPerformed),
+            title: title.trim(),
+            interval_value,
+            interval_type,
+            last_performed: this.computeISODate(last_performed),
+            tag_id: tag?.trim() || undefined,
+            icon: icon?.trim() || "mdi:calendar-check",
+            labels: label ?? [],
         };
-
-        if (this.tagId && this.tagId.trim() !== "") {
-            payload.tag_id = this.tagId;
-        }
-
-        if (this.icon && this.icon.trim() !== "") {
-            payload.icon = this.icon
-        } else {
-            payload.icon = "mdi:calendar-check";
-        }
 
         try {
             await saveTask(this.hass!, payload);
@@ -409,7 +569,21 @@ export class HomeMaintenancePanel extends LitElement {
     private async _handleOpenEditDialogClick(id: string) {
         try {
             const task: Task = await loadTask(this.hass!, id);
-            this.editingTask = task;
+            this._editingTaskId = task.id;
+            let labels: Label[] = [];
+            const entity = this.registry.find((entry) => entry.unique_id === task.id);
+            if (entity)
+                labels = this.labelRegistry.filter((lr) => entity.labels.includes(lr.label_id));
+
+            this._editFormData = {
+                title: task.title,
+                interval_value: task.interval_value,
+                interval_type: task.interval_type,
+                last_performed: task.last_performed ?? "",
+                icon: task.icon ?? "",
+                label: labels.map((l) => l.label_id),
+                tag: task.tag_id ?? "",
+            };
 
             await this.updateComplete;
         } catch (e) {
@@ -418,28 +592,28 @@ export class HomeMaintenancePanel extends LitElement {
     }
 
     private async _handleSaveEditClick() {
-        if (!this.editingTask) return;
+        if (!this._editingTaskId) return;
 
-        const lastPerformedISO = this.computeISODate(this.editingTask.last_performed);
+        const lastPerformedISO = this.computeISODate(this._editFormData.last_performed);
         if (!lastPerformedISO) return;
 
-        let icon = "mdi:calendar-check";
-        if (this.editingTask.icon && this.editingTask.icon.trim() !== "") {
-            icon = this.editingTask.icon
-        }
+        const payload = {
+            task_id: this._editingTaskId,
+            updates: {
+                title: this._editFormData.title.trim(),
+                interval_value: Number(this._editFormData.interval_value),
+                interval_type: this._editFormData.interval_type,
+                last_performed: lastPerformedISO,
+                icon: this._editFormData.icon?.trim() || "mdi:calendar-check",
+                tag_id: this._editFormData.tag || undefined,
+                label_ids: this._editFormData.label,
+            },
+        };
 
         try {
-            await updateTask(this.hass!, {
-                task_id: this.editingTask.id,
-                updates: {
-                    interval_value: Number(this.editingTask.interval_value),
-                    interval_type: this.editingTask.interval_type,
-                    last_performed: lastPerformedISO,
-                    icon: icon,
-                },
-            });
-
-            this.editingTask = null;
+            await updateTask(this.hass!, payload);
+            this._editingTaskId = null;
+            await this.resetEditForm();
             await this.loadData();
         } catch (e) {
             console.error("Failed to update task:", e);
@@ -460,8 +634,16 @@ export class HomeMaintenancePanel extends LitElement {
     private _handleDialogClosed(e: CustomEvent) {
         const action = e.detail?.action;
         if (action === "close" || action === "cancel") {
-            this.editingTask = null;
+            this._editingTaskId = null;
         }
+    }
+
+    private _handleFormValueChanged(ev: CustomEvent) {
+        this._formData = { ...this._formData, ...ev.detail.value };
+    }
+
+    private _handleEditFormValueChanged(ev: CustomEvent) {
+        this._editFormData = { ...this._editFormData, ...ev.detail.value };
     }
 
     static styles = commonStyle;
