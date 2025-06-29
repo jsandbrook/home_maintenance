@@ -1,14 +1,15 @@
 {
     "common": {
         "loading": "Loading...",
-        "none": "None"
+        "none": "None",
+        "no_tasks": "No tasks found."
     },
     "intervals": {
-        "day": "day",
+        "day": "Day",
         "days": "Days",
-        "week": "week",
+        "week": "Week",
         "weeks": "Weeks",
-        "month": "month",
+        "month": "Month",
         "months": "Months"
     },
     "panel": {
@@ -27,16 +28,20 @@
                     },
                     "last_performed": {
                         "heading": "Last Performed",
-                        "helper": "Optional — leave blank to use today"
+                        "helper": "Leave blank to use today"
                     },
                     "tag": {
-                        "heading": "Tag",
-                        "helper": "Optional"
+                        "heading": "Tag"
                     },
                     "icon": {
-                        "heading": "Icon",
-                        "helper": "Optional"
+                        "heading": "Icon"
+                    },
+                    "label": {
+                        "heading": "Label(s)"
                     }
+                },
+                "sections": {
+                    "optional": "Optional settings"
                 },
                 "actions": {
                     "add_task": "Add Task"
@@ -72,11 +77,20 @@
                     },
                     "last_performed": {
                         "heading": "Last Performed",
-                        "helper": "Optional — leave blank to use today"
+                        "helper": "Leave blank to use today"
+                    },
+                    "tag": {
+                        "heading": "Tag"
                     },
                     "icon": {
                         "heading": "Icon"
+                    },
+                    "label": {
+                        "heading": "Label(s)"
                     }
+                },
+                "sections": {
+                    "optional": "Optional settings"
                 },
                 "actions": {
                     "cancel": "Cancel",
