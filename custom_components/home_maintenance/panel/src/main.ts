@@ -219,10 +219,11 @@ export class HomeMaintenancePanel extends LitElement {
                 }
             })(),
             next_due: (() => {
-                const next = new Date(task.last_performed);
-                const intervalType: IntervalType = task.interval_type;
+                const [datePart] = task.last_performed.split("T");
+                const [year, month, day] = datePart.split("-").map(Number);
+                const next = new Date(year, month - 1, day);
 
-                switch (intervalType) {
+                switch (task.interval_type) {
                     case "days":
                         next.setDate(next.getDate() + task.interval_value);
                         break;
@@ -233,12 +234,10 @@ export class HomeMaintenancePanel extends LitElement {
                         next.setMonth(next.getMonth() + task.interval_value);
                         break;
                     default:
-                        throw new Error(`Unsupported interval type: ${intervalType}`);
+                        throw new Error(`Unsupported interval type: ${task.interval_type}`);
                 }
 
-                const nextDue = next.toLocaleDateString();
-
-                return nextDue;
+                return next;
             })(),
             tagIcon: (() => task.tag_id && task.tag_id.trim() !== "" ? "mdi:tag" : undefined)(),
         }));
