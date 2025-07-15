@@ -596,17 +596,24 @@ export class HomeMaintenancePanel extends LitElement {
         const lastPerformedISO = this.computeISODate(this._editFormData.last_performed);
         if (!lastPerformedISO) return;
 
+        const updates: Record<string, any> = {
+            title: this._editFormData.title.trim(),
+            interval_value: Number(this._editFormData.interval_value),
+            interval_type: this._editFormData.interval_type,
+            last_performed: lastPerformedISO,
+            icon: this._editFormData.icon?.trim() || "mdi:calendar-check",
+            labels: this._editFormData.label,
+        };
+
+        if (this._editFormData.tag && this._editFormData.tag.trim() !== "") {
+            updates.tag_id = this._editFormData.tag.trim();
+        } else {
+            updates.tag_id = null;
+        }
+
         const payload = {
             task_id: this._editingTaskId,
-            updates: {
-                title: this._editFormData.title.trim(),
-                interval_value: Number(this._editFormData.interval_value),
-                interval_type: this._editFormData.interval_type,
-                last_performed: lastPerformedISO,
-                icon: this._editFormData.icon?.trim() || "mdi:calendar-check",
-                tag_id: this._editFormData.tag || undefined,
-                label_ids: this._editFormData.label,
-            },
+            updates,
         };
 
         try {

@@ -132,6 +132,19 @@ class TaskStore:
             if hasattr(task, key):
                 setattr(task, key, value)
 
+        if "tag_id" in updated:
+            tag_id = updated["tag_id"]
+            task.tag_id = tag_id if tag_id else None
+            entity.task["tag_id"] = tag_id if tag_id else None
+
+        if "labels" in updated:
+            registry = entity_registry.async_get(self.hass)
+            if registry.async_get(entity.entity_id):
+                registry.async_update_entity(
+                    entity.entity_id,
+                    labels=set(updated["labels"]),
+                )
+
         self.hass.async_create_task(entity.async_update_ha_state(force_refresh=True))
         self._save()
 
