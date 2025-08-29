@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - "main"
+      - "main-fork"
   pull_request:
     branches:
       - "main"
+      - "main-fork"
 
 permissions: {}
 

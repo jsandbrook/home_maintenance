@@ -1,7 +1,7 @@
 {
     "name": "TJPoorman/home_maintenance",
     "image": "mcr.microsoft.com/devcontainers/python:3.13",
-    "postCreateCommand": "scripts/setup",
+    "postCreateCommand": "sudo scripts/setup",
     "forwardPorts": [
         8123
     ],
